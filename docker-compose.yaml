@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 
 services:
   postgres:
@@ -20,6 +20,19 @@ services:
     networks:
       - sub-aggregator-network
 
+  migrate:
+    image: migrate/migrate:v4.17.1
+    container_name: sub-aggregator-migrate
+    command: ["-path", "/migrations", "-database", "postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=disable", "up"]
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sub-aggregator-network
+    restart: "no"
+
   app:
     build:
       context: .
@@ -38,6 +51,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - sub-aggregator-network
     restart: unless-stopped
